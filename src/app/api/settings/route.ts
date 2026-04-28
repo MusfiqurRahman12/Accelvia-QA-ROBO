@@ -46,18 +46,19 @@ export async function PATCH(req: Request) {
     const updateData: any = {};
 
     if (body.name !== undefined) updateData.name = body.name;
-    if (body.figmaToken !== undefined) updateData.figmaToken = body.figmaToken || null;
-    if (body.openaiKey !== undefined) updateData.openaiKey = body.openaiKey || null;
-    if (body.geminiKey !== undefined) updateData.geminiKey = body.geminiKey || null;
+    if (body.figmaToken) updateData.figmaToken = body.figmaToken;
+    if (body.openaiKey) updateData.openaiKey = body.openaiKey;
+    if (body.geminiKey) updateData.geminiKey = body.geminiKey;
 
-    await prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id: session.user.id },
       data: updateData,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, userId: updated.id });
   } catch (error) {
     console.error("Error updating settings:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: "Server error", details: message }, { status: 500 });
   }
 }

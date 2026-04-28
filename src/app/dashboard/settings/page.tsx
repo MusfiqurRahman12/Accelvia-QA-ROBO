@@ -34,9 +34,12 @@ export default function SettingsPage() {
       .catch(() => setLoading(false));
   }, []);
 
+  const [saveError, setSaveError] = useState("");
+
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
+    setSaveError("");
     
     const updateData: any = { name };
     if (figmaToken) updateData.figmaToken = figmaToken;
@@ -50,6 +53,8 @@ export default function SettingsPage() {
         body: JSON.stringify(updateData),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
         setSaved(true);
         if (figmaToken) setHasFigmaToken(true);
@@ -59,9 +64,12 @@ export default function SettingsPage() {
         setOpenaiKey("");
         setGeminiKey("");
         setTimeout(() => setSaved(false), 3000);
+      } else {
+        setSaveError(data.details || data.error || "Failed to save settings");
       }
     } catch (error) {
       console.error("Save failed", error);
+      setSaveError("Network error. Please try again.");
     }
     
     setSaving(false);
@@ -190,6 +198,7 @@ export default function SettingsPage() {
 
       <div className="settings-actions">
         {saved && <span className="save-success"><CheckCircle2 size={16} /> Saved successfully</span>}
+        {saveError && <span style={{ color: "#fca5a5", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>⚠ {saveError}</span>}
         <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
           {saving ? <><Loader2 size={16} className="spin" /> Saving...</> : <><Save size={16} /> Save Changes</>}
         </button>
