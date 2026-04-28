@@ -78,6 +78,7 @@ export async function extractTypography(
         letterSpacing: string;
         color: string;
         textTransform: string;
+        boundingBox: { x: number; y: number; width: number; height: number };
       }> = [];
 
       textElements.forEach((el, index) => {

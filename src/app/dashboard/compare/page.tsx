@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Upload,
@@ -36,11 +36,24 @@ export default function ComparePage() {
   const [devUrl, setDevUrl] = useState("");
   const [selectedViewports, setSelectedViewports] = useState([3]); // Desktop by default
   const [enableAI, setEnableAI] = useState(false);
+  const [aiProvider, setAiProvider] = useState<"openai" | "gemini">("gemini");
   const [enableTypography, setEnableTypography] = useState(true);
   const [fullPageScan, setFullPageScan] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [hasOpenaiKey, setHasOpenaiKey] = useState(false);
+  const [hasGeminiKey, setHasGeminiKey] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then(data => {
+      if (data.user) {
+        setHasOpenaiKey(data.user.hasOpenaiKey);
+        setHasGeminiKey(data.user.hasGeminiKey);
+        if (data.user.hasOpenaiKey && !data.user.hasGeminiKey) setAiProvider("openai");
+      }
+    }).catch(() => {});
+  }, []);
 
   const toggleViewport = (index: number) => {
     setSelectedViewports((prev) =>
@@ -60,6 +73,7 @@ export default function ComparePage() {
       formData.append("enableAI", String(enableAI));
       formData.append("enableTypography", String(enableTypography));
       formData.append("fullPageScan", String(fullPageScan));
+      formData.append("aiProvider", aiProvider);
 
       if (referenceType === "image" && referenceFile) {
         formData.append("referenceFile", referenceFile);
@@ -276,13 +290,41 @@ export default function ComparePage() {
                 </div>
                 <div>
                   <h3>AI Bug Detection</h3>
-                  <p>GPT-4o Vision analyzes spacing, alignment, and layout issues</p>
-                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Requires OpenAI API key in settings</span>
+                  <p>Vision AI analyzes spacing, alignment, and layout issues</p>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Requires an API key in settings</span>
                 </div>
                 <div className={`option-toggle ${enableAI ? "on" : ""}`}>
                   <div className="toggle-dot" />
                 </div>
               </div>
+
+              {enableAI && (
+                <div className="provider-selector" style={{ padding: "12px 16px", background: "rgba(245,158,11,0.05)", borderRadius: "var(--radius-md)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>Select AI Provider</p>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      className={`btn ${aiProvider === "gemini" ? "btn-primary" : "btn-secondary"}`}
+                      style={{ flex: 1, fontSize: 13 }}
+                      onClick={(e) => { e.stopPropagation(); setAiProvider("gemini"); }}
+                    >
+                      🟢 Gemini (Free)
+                    </button>
+                    <button
+                      className={`btn ${aiProvider === "openai" ? "btn-primary" : "btn-secondary"}`}
+                      style={{ flex: 1, fontSize: 13 }}
+                      onClick={(e) => { e.stopPropagation(); setAiProvider("openai"); }}
+                    >
+                      ⚡ OpenAI (Paid)
+                    </button>
+                  </div>
+                  {aiProvider === "gemini" && !hasGeminiKey && (
+                    <p style={{ fontSize: 11, color: "#fca5a5", marginTop: 8 }}>⚠ No Gemini key found. Add one in Settings.</p>
+                  )}
+                  {aiProvider === "openai" && !hasOpenaiKey && (
+                    <p style={{ fontSize: 11, color: "#fca5a5", marginTop: 8 }}>⚠ No OpenAI key found. Add one in Settings.</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {error && <div className="auth-error" style={{ marginTop: 16 }}>{error}</div>}

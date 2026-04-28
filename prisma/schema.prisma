@@ -44,6 +44,8 @@ model User {
   image         String?
   figmaToken    String?
   openaiKey     String?
+  geminiKey     String?
+  role          String    @default("user")
   accounts      Account[]
   sessions      Session[]
   projects      Project[]

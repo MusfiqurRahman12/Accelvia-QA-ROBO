@@ -15,6 +15,7 @@ export async function GET() {
         email: true,
         figmaToken: true,
         openaiKey: true,
+        geminiKey: true,
       },
     });
 
@@ -27,6 +28,7 @@ export async function GET() {
         email: user.email,
         hasFigmaToken: !!user.figmaToken,
         hasOpenaiKey: !!user.openaiKey,
+        hasGeminiKey: !!user.geminiKey,
       },
     });
   } catch (error) {
@@ -46,6 +48,7 @@ export async function PATCH(req: Request) {
     if (body.name !== undefined) updateData.name = body.name;
     if (body.figmaToken !== undefined) updateData.figmaToken = body.figmaToken || null;
     if (body.openaiKey !== undefined) updateData.openaiKey = body.openaiKey || null;
+    if (body.geminiKey !== undefined) updateData.geminiKey = body.geminiKey || null;
 
     await prisma.user.update({
       where: { id: session.user.id },

@@ -34,11 +34,11 @@ export function compareTypography(
     for (const [property, severity] of Object.entries(PROPERTY_SEVERITY)) {
       const refValue = normalizeValue(
         property,
-        refItem[property as keyof TypographyStyle]
+        String(refItem[property as keyof TypographyStyle] ?? "")
       );
       const devValue = normalizeValue(
         property,
-        devMatch.style[property as keyof TypographyStyle]
+        String(devMatch.style[property as keyof TypographyStyle] ?? "")
       );
 
       if (refValue !== devValue) {

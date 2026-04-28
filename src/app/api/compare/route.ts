@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     const enableAI = formData.get("enableAI") === "true";
     const enableTypography = formData.get("enableTypography") === "true";
     const fullPageScan = formData.get("fullPageScan") !== "false"; // default true
+    const aiProvider = (formData.get("aiProvider") as string) || "gemini";
 
     if (!devUrl || !referenceType) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -66,6 +67,7 @@ export async function POST(req: Request) {
       enableAI,
       enableTypography,
       fullPageScan,
+      aiProvider,
       userId: session.user.id,
     }).catch(console.error);
 
@@ -89,9 +91,10 @@ async function processComparisons(params: {
   enableAI: boolean;
   enableTypography: boolean;
   fullPageScan: boolean;
+  aiProvider: string;
   userId: string;
 }) {
-  const { comparisonIds, referenceType, referenceSource, referenceFile, devUrl, viewports, enableAI, enableTypography, fullPageScan, userId } = params;
+  const { comparisonIds, referenceType, referenceSource, referenceFile, devUrl, viewports, enableAI, enableTypography, fullPageScan, aiProvider, userId } = params;
 
   for (let i = 0; i < comparisonIds.length; i++) {
     const comparisonId = comparisonIds[i];
@@ -170,12 +173,16 @@ async function processComparisons(params: {
       // Step 6: AI analysis (if enabled)
       if (enableAI) {
         const user = await prisma.user.findUnique({ where: { id: userId } });
-        if (user?.openaiKey) {
+        const provider = aiProvider as "openai" | "gemini";
+        const apiKey = provider === "gemini" ? user?.geminiKey : user?.openaiKey;
+        
+        if (apiKey) {
           const aiBugs = await analyzeWithAI(
             refBuffer.toString("base64"),
             devBuffer.toString("base64"),
             diffResult.diffBuffer.toString("base64"),
-            user.openaiKey
+            apiKey,
+            provider
           );
 
           for (const bug of aiBugs) {

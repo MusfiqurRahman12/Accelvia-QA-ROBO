@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -23,6 +23,7 @@ interface Bug {
   severity: string;
   source: string;
   screenshotUrl?: string;
+  location?: string;
 }
 
 export default function ReportPage({
@@ -40,6 +41,8 @@ export default function ReportPage({
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [bugs, setBugs] = useState<Bug[]>([]);
+  const [exporting, setExporting] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch(`/api/report/${id}`)
@@ -94,6 +97,61 @@ export default function ReportPage({
     }
 
     return text;
+  };
+
+  const exportPDF = async () => {
+    setExporting(true);
+    // Switch to preview mode for the export
+    const wasEditMode = editMode;
+    if (wasEditMode) setEditMode(false);
+    
+    // Wait for React to re-render to preview mode
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const { jsPDF } = await import("jspdf");
+      
+      const element = reportRef.current;
+      if (!element) return;
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#0f0f13",
+        logging: false,
+      });
+      
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pdfWidth - 20; // 10mm margin each side
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 10; // top margin
+      
+      // First page
+      pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight - 20;
+      
+      // Additional pages
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + 10;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight - 20;
+      }
+      
+      const filename = title.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 50);
+      pdf.save(`${filename}.pdf`);
+    } catch (error) {
+      console.error("PDF export failed:", error);
+    }
+    
+    if (wasEditMode) setEditMode(true);
+    setExporting(false);
   };
 
   const updateBug = (index: number, field: keyof Bug, value: string) => {
@@ -158,13 +216,16 @@ export default function ReportPage({
           <button className="btn btn-secondary btn-sm" onClick={copyReport}>
             {copied ? <><CheckCircle2 size={14} /> Copied!</> : <><Copy size={14} /> Copy</>}
           </button>
+          <button className="btn btn-secondary btn-sm" onClick={exportPDF} disabled={exporting}>
+            <Download size={14} /> {exporting ? "Exporting..." : "Export PDF"}
+          </button>
           <button className="btn btn-secondary btn-sm" onClick={saveReport} disabled={saving}>
             <Save size={14} /> {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>
 
-      <div className="report-container">
+      <div className="report-container" ref={reportRef}>
         {editMode ? (
           /* Edit Mode */
           <div className="report-editor">

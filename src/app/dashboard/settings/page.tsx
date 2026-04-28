@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, Key, Sparkles, PenTool, Save, Loader2, CheckCircle2 } from "lucide-react";
+import { User, Key, Sparkles, PenTool, Save, Loader2, CheckCircle2, Zap } from "lucide-react";
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -12,9 +12,11 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [figmaToken, setFigmaToken] = useState("");
   const [openaiKey, setOpenaiKey] = useState("");
+  const [geminiKey, setGeminiKey] = useState("");
   
   const [hasFigmaToken, setHasFigmaToken] = useState(false);
   const [hasOpenaiKey, setHasOpenaiKey] = useState(false);
+  const [hasGeminiKey, setHasGeminiKey] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -25,6 +27,7 @@ export default function SettingsPage() {
           setEmail(data.user.email || "");
           setHasFigmaToken(data.user.hasFigmaToken);
           setHasOpenaiKey(data.user.hasOpenaiKey);
+          setHasGeminiKey(data.user.hasGeminiKey);
         }
         setLoading(false);
       })
@@ -38,6 +41,7 @@ export default function SettingsPage() {
     const updateData: any = { name };
     if (figmaToken) updateData.figmaToken = figmaToken;
     if (openaiKey) updateData.openaiKey = openaiKey;
+    if (geminiKey) updateData.geminiKey = geminiKey;
 
     try {
       const res = await fetch("/api/settings", {
@@ -50,8 +54,10 @@ export default function SettingsPage() {
         setSaved(true);
         if (figmaToken) setHasFigmaToken(true);
         if (openaiKey) setHasOpenaiKey(true);
+        if (geminiKey) setHasGeminiKey(true);
         setFigmaToken("");
         setOpenaiKey("");
+        setGeminiKey("");
         setTimeout(() => setSaved(false), 3000);
       }
     } catch (error) {
@@ -155,6 +161,28 @@ export default function SettingsPage() {
               placeholder={hasOpenaiKey ? "•••••••••••••••• (Set new key to override)" : "sk-..."}
               value={openaiKey} 
               onChange={(e) => setOpenaiKey(e.target.value)} 
+            />
+          </div>
+
+          <div className="integration-card">
+            <div className="integration-header">
+              <div className="integration-icon" style={{ color: "#06b6d4", background: "rgba(6,182,212,0.1)" }}>
+                <Zap size={20} />
+              </div>
+              <div>
+                <h3>Google Gemini API Key</h3>
+                <p>Free tier available. Get a key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style={{ color: "var(--accent-primary)" }}>Google AI Studio</a>.</p>
+              </div>
+              {hasGeminiKey && !geminiKey && (
+                <div className="status-badge connected"><CheckCircle2 size={12} /> Connected</div>
+              )}
+            </div>
+            <input 
+              type="password" 
+              className="input" 
+              placeholder={hasGeminiKey ? "•••••••••••••••• (Set new key to override)" : "AIza..."}
+              value={geminiKey} 
+              onChange={(e) => setGeminiKey(e.target.value)} 
             />
           </div>
         </div>
