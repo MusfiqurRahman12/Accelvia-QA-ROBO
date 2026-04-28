@@ -27,7 +27,7 @@ export async function analyzeWithAI(
 Analyze the provided screenshots and identify cosmetic bugs. 
 Return your analysis as a JSON array with objects having these fields:
 - category: one of "spacing", "alignment", "color", "overflow", "missing-element", "font", "layout", "border", "shadow", "opacity"
-- description: clear description of the bug
+- description: clear description of the bug. ALWAYS start the description by mentioning the section it is located in (e.g. "In the Header section: ...", "In the Footer: ...", "In the Hero section: ...")
 - severity: "critical", "major", or "minor"
 - regionX, regionY, regionW, regionH: approximate pixel coordinates of the bug region (optional)
 

@@ -90,8 +90,20 @@ export async function extractTypography(
           ? `.${String(el.className).split(" ").filter(Boolean).join(".")}`
           : "";
 
+        let section = "Main";
+        const closestSemantic = el.closest("header, footer, nav, aside, section");
+        if (closestSemantic) {
+          section = closestSemantic.tagName.toLowerCase();
+          section = section.charAt(0).toUpperCase() + section.slice(1);
+          if (closestSemantic.id) section += ` #${closestSemantic.id}`;
+          else if (closestSemantic.className && typeof closestSemantic.className === "string") {
+            const firstClass = closestSemantic.className.split(" ")[0];
+            if (firstClass) section += ` .${firstClass}`;
+          }
+        }
+
         results.push({
-          selector: `${tagName}${classList}:nth(${index})`,
+          selector: `[${section}] ${tagName}${classList}:nth(${index})`,
           textContent: text.substring(0, 100),
           fontFamily: computed.fontFamily,
           fontSize: computed.fontSize,
