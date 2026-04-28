@@ -1,0 +1,114 @@
+import { TypographyStyle } from "@/types";
+
+/**
+ * Screenshot service using Playwright for headless browser screenshots
+ * and typography extraction via getComputedStyle.
+ *
+ * Note: Playwright must be installed separately:
+ *   npx playwright install chromium
+ */
+
+export async function captureScreenshot(
+  url: string,
+  viewport: { width: number; height: number }
+): Promise<Buffer> {
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch({ headless: true });
+
+  try {
+    const context = await browser.newContext({
+      viewport: { width: viewport.width, height: viewport.height },
+      deviceScaleFactor: 1,
+    });
+
+    const page = await context.newPage();
+
+    await page.goto(url, {
+      waitUntil: "networkidle",
+      timeout: 30000,
+    });
+
+    // Wait for fonts to load
+    await page.evaluate(() => document.fonts.ready);
+    // Extra settle time for animations/lazy content
+    await page.waitForTimeout(1500);
+
+    const screenshot = await page.screenshot({
+      fullPage: true,
+      type: "png",
+    });
+
+    await browser.close();
+    return Buffer.from(screenshot);
+  } catch (error) {
+    await browser.close();
+    throw error;
+  }
+}
+
+export async function extractTypography(
+  url: string,
+  viewport: { width: number; height: number }
+): Promise<TypographyStyle[]> {
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch({ headless: true });
+
+  try {
+    const context = await browser.newContext({
+      viewport: { width: viewport.width, height: viewport.height },
+    });
+
+    const page = await context.newPage();
+    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+    await page.evaluate(() => document.fonts.ready);
+
+    const styles = await page.evaluate(() => {
+      const textElements = document.querySelectorAll(
+        "h1, h2, h3, h4, h5, h6, p, span, a, li, td, th, label, button, input, textarea, blockquote, figcaption, strong, em, small, code"
+      );
+
+      const results: Array<{
+        selector: string;
+        textContent: string;
+        fontFamily: string;
+        fontSize: string;
+        fontWeight: string;
+        lineHeight: string;
+        letterSpacing: string;
+        color: string;
+        textTransform: string;
+      }> = [];
+
+      textElements.forEach((el, index) => {
+        const text = (el.textContent || "").trim();
+        if (!text || text.length > 200) return; // skip empty or very long text
+
+        const computed = window.getComputedStyle(el);
+        const tagName = el.tagName.toLowerCase();
+        const classList = el.className
+          ? `.${String(el.className).split(" ").filter(Boolean).join(".")}`
+          : "";
+
+        results.push({
+          selector: `${tagName}${classList}:nth(${index})`,
+          textContent: text.substring(0, 100),
+          fontFamily: computed.fontFamily,
+          fontSize: computed.fontSize,
+          fontWeight: computed.fontWeight,
+          lineHeight: computed.lineHeight,
+          letterSpacing: computed.letterSpacing,
+          color: computed.color,
+          textTransform: computed.textTransform,
+        });
+      });
+
+      return results;
+    });
+
+    await browser.close();
+    return styles;
+  } catch (error) {
+    await browser.close();
+    throw error;
+  }
+}

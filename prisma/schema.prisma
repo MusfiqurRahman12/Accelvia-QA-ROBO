@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  figmaToken    String?
+  openaiKey     String?
+  accounts      Account[]
+  sessions      Session[]
+  projects      Project[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Project {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comparisons Comparison[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Comparison {
+  id              String           @id @default(cuid())
+  projectId       String
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  referenceType   String           // "image" | "url" | "figma"
+  referenceSource String
+  devUrl          String
+  viewport        Json             // { width: number, height: number }
+  status          String           @default("pending") // pending | processing | done | failed
+  errorMessage    String?
+  mismatchPercent Float?
+  diffImageUrl    String?
+  refScreenshotUrl String?
+  devScreenshotUrl String?
+  typographyDiffs TypographyDiff[]
+  aiBugs          AIBug[]
+  bugReport       BugReport?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model TypographyDiff {
+  id              String     @id @default(cuid())
+  comparisonId    String
+  comparison      Comparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+  elementSelector String
+  textContent     String
+  property        String     // font-family | font-size | font-weight | line-height | letter-spacing | color
+  expected        String
+  actual          String
+  severity        String     // critical | major | minor
+}
+
+model AIBug {
+  id           String     @id @default(cuid())
+  comparisonId String
+  comparison   Comparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+  category     String     // spacing | alignment | color | overflow | missing-element | font | layout
+  description  String
+  severity     String     // critical | major | minor
+  regionX      Int?
+  regionY      Int?
+  regionW      Int?
+  regionH      Int?
+}
+
+model BugReport {
+  id           String     @id @default(cuid())
+  comparisonId String     @unique
+  comparison   Comparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+  title        String
+  summary      String?
+  content      Json       // structured editable content
+  status       String     @default("draft") // draft | finalized
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
