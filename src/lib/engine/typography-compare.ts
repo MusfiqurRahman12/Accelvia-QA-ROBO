@@ -55,7 +55,16 @@ export function compareTypography(
     }
   }
 
-  return mismatches;
+  // Deduplicate: remove duplicate mismatches for the same text + property combo
+  const seen = new Set<string>();
+  const uniqueMismatches = mismatches.filter((m) => {
+    const key = `${m.textContent}|${m.property}|${m.expected}|${m.actual}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return uniqueMismatches;
 }
 
 function findBestMatch(
@@ -136,27 +145,67 @@ function normalizeValue(property: string, value: string): string {
       bold: "700",
       extrabold: "800",
       black: "900",
+      light: "300",
+      thin: "100",
     };
     const val = value.toLowerCase().trim();
     return weightMap[val] || val;
   }
 
   if (property === "fontSize" || property === "letterSpacing") {
-    // Round to nearest pixel
+    // Round to nearest pixel to handle sub-pixel differences like 15.996px vs 16px
     const num = parseFloat(value);
     return isNaN(num) ? value : `${Math.round(num)}px`;
   }
 
   if (property === "lineHeight") {
     const num = parseFloat(value);
-    return isNaN(num) ? value : `${Math.round(num * 10) / 10}`;
+    if (isNaN(num)) return value;
+    // Round to nearest whole pixel to avoid sub-pixel false positives
+    return `${Math.round(num)}`;
   }
 
   if (property === "color") {
-    return value.toLowerCase().replace(/\s/g, "");
+    return normalizeColor(value);
   }
 
   return value.toLowerCase().trim();
+}
+
+/**
+ * Normalize any CSS color value to a 6-digit lowercase hex string.
+ * Handles: rgb(), rgba(), hex (#fff, #ffffff), and named colors.
+ */
+function normalizeColor(value: string): string {
+  const v = value.toLowerCase().trim();
+
+  // Handle rgb(r, g, b) and rgba(r, g, b, a) — ignore alpha for comparison
+  const rgbMatch = v.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (rgbMatch) {
+    const r = parseInt(rgbMatch[1]);
+    const g = parseInt(rgbMatch[2]);
+    const b = parseInt(rgbMatch[3]);
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  }
+
+  // Handle hex
+  const hexMatch = v.match(/^#([0-9a-f]{3,8})$/);
+  if (hexMatch) {
+    let hex = hexMatch[1];
+    // Expand shorthand (#fff → #ffffff)
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    // Take only the first 6 chars (ignore alpha in #rrggbbaa)
+    return `#${hex.substring(0, 6)}`;
+  }
+
+  // Fallback for named colors or unknown formats — return as-is
+  return v.replace(/\s/g, "");
+}
+
+function toHex(n: number): string {
+  return n.toString(16).padStart(2, "0");
 }
 
 function formatPropertyName(property: string): string {

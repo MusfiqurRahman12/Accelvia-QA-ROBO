@@ -85,8 +85,24 @@ export async function extractTypography(
         const text = (el.textContent || "").trim();
         if (!text || text.length > 200) return; // skip empty or very long text
 
-        const computed = window.getComputedStyle(el);
+        // Skip invisible or zero-size elements
         const rect = el.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+
+        // Deduplicate: skip parent elements whose text is the same as a child element's text
+        // This prevents reporting the same bug twice for e.g. <p><span>Hello</span></p>
+        const children = el.querySelectorAll("h1, h2, h3, h4, h5, h6, p, span, a, li, td, th, label, button, strong, em, small, code");
+        let isRedundantParent = false;
+        for (const child of children) {
+          const childText = (child.textContent || "").trim();
+          if (childText === text && child !== el) {
+            isRedundantParent = true;
+            break;
+          }
+        }
+        if (isRedundantParent) return;
+
+        const computed = window.getComputedStyle(el);
         const tagName = el.tagName.toLowerCase();
         const classList = el.className
           ? `.${String(el.className).split(" ").filter(Boolean).join(".")}`
