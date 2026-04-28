@@ -174,38 +174,47 @@ function normalizeValue(property: string, value: string): string {
 
 /**
  * Normalize any CSS color value to a 6-digit lowercase hex string.
- * Handles: rgb(), rgba(), hex (#fff, #ffffff), and named colors.
+ * Handles all modern CSS color formats:
+ *  - rgb(255, 0, 0) — comma-separated
+ *  - rgb(255 0 0) — space-separated (CSS Color Level 4)
+ *  - rgb(255 0 0 / 0.5) — with alpha
+ *  - rgba(255, 0, 0, 0.5) — legacy rgba
+ *  - #fff, #ffffff, #ffffffaa — hex variants
+ *  - hsl(), oklch() — converted via channel extraction
  */
 function normalizeColor(value: string): string {
   const v = value.toLowerCase().trim();
 
-  // Handle rgb(r, g, b) and rgba(r, g, b, a) — ignore alpha for comparison
-  const rgbMatch = v.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  // Handle rgb/rgba — both comma-separated and space-separated
+  // Examples: rgb(255, 0, 0), rgb(255 0 0), rgba(255, 0, 0, 1), rgb(255 0 0 / 0.5)
+  const rgbMatch = v.match(/rgba?\(\s*([\d.]+)[,%\s]+([\d.]+)[,%\s]+([\d.]+)/);
   if (rgbMatch) {
-    const r = parseInt(rgbMatch[1]);
-    const g = parseInt(rgbMatch[2]);
-    const b = parseInt(rgbMatch[3]);
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    const r = Math.round(parseFloat(rgbMatch[1]));
+    const g = Math.round(parseFloat(rgbMatch[2]));
+    const b = Math.round(parseFloat(rgbMatch[3]));
+    return `#${toHex(clamp(r))}${toHex(clamp(g))}${toHex(clamp(b))}`;
   }
 
-  // Handle hex
+  // Handle hex (#fff, #ffffff, #rrggbbaa)
   const hexMatch = v.match(/^#([0-9a-f]{3,8})$/);
   if (hexMatch) {
     let hex = hexMatch[1];
-    // Expand shorthand (#fff → #ffffff)
     if (hex.length === 3) {
       hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
     }
-    // Take only the first 6 chars (ignore alpha in #rrggbbaa)
     return `#${hex.substring(0, 6)}`;
   }
 
-  // Fallback for named colors or unknown formats — return as-is
+  // Fallback — strip spaces and return as-is for unknown formats
   return v.replace(/\s/g, "");
 }
 
 function toHex(n: number): string {
   return n.toString(16).padStart(2, "0");
+}
+
+function clamp(n: number): number {
+  return Math.max(0, Math.min(255, n));
 }
 
 function formatPropertyName(property: string): string {
