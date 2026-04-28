@@ -28,6 +28,10 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    if (comparison && typeof comparison.viewport === 'string') {
+      comparison.viewport = JSON.parse(comparison.viewport);
+    }
+
     return NextResponse.json({ comparison });
   } catch (error) {
     console.error("Error fetching comparison:", error);

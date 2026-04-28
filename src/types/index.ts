@@ -14,6 +14,7 @@ export interface TypographyStyle {
   letterSpacing: string;
   color: string;
   textTransform: string;
+  boundingBox?: { x: number; y: number; width: number; height: number };
 }
 
 export interface TypographyMismatch {
@@ -23,6 +24,7 @@ export interface TypographyMismatch {
   expected: string;
   actual: string;
   severity: "critical" | "major" | "minor";
+  boundingBox?: { x: number; y: number; width: number; height: number };
 }
 
 export interface DiffResult {
@@ -78,6 +80,7 @@ export interface BugReportItem {
   screenshotUrl?: string;
   viewport?: Viewport;
   source: "pixel-diff" | "typography" | "ai";
+  location?: string; // Formatted location text
 }
 
 export const DEFAULT_VIEWPORTS: Viewport[] = [

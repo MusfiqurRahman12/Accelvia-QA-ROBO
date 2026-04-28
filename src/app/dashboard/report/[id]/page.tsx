@@ -85,6 +85,7 @@ export default function ReportPage({
       text += `- **Severity:** ${bug.severity}\n`;
       text += `- **Category:** ${bug.category}\n`;
       text += `- **Source:** ${bug.source}\n`;
+      if (bug.location) text += `- **Location:** ${bug.location}\n`;
       text += `- **Description:** ${bug.description}\n\n`;
     });
 
@@ -225,8 +226,13 @@ export default function ReportPage({
                     onChange={(e) => updateBug(i, "description", e.target.value)}
                     placeholder="Describe the issue..."
                     rows={2}
-                    style={{ resize: "vertical" }}
+                    style={{ resize: "vertical", marginBottom: 8 }}
                   />
+                  {bug.location && (
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", background: "rgba(255,255,255,0.05)", padding: "4px 8px", borderRadius: 4, display: "inline-block" }}>
+                      {bug.location}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -262,6 +268,7 @@ export default function ReportPage({
                 <div className="preview-bug-meta">
                   <span>Category: {bug.category}</span>
                   <span>Source: {bug.source}</span>
+                  {bug.location && <span>Location: {bug.location}</span>}
                 </div>
                 <p className="preview-bug-desc">{bug.description}</p>
               </div>

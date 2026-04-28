@@ -47,7 +47,7 @@ export async function POST(req: Request) {
           referenceType,
           referenceSource: referenceSource || "upload",
           devUrl,
-          viewport: viewport as object,
+          viewport: JSON.stringify(viewport),
           status: "processing",
         },
       });
@@ -142,8 +142,16 @@ async function processComparisons(params: {
           const mismatches = compareTypography(refTypography, devTypography);
 
           for (const mismatch of mismatches) {
+            const { boundingBox, ...restMismatch } = mismatch;
             await prisma.typographyDiff.create({
-              data: { comparisonId, ...mismatch },
+              data: { 
+                comparisonId, 
+                ...restMismatch,
+                regionX: boundingBox ? Math.round(boundingBox.x) : null,
+                regionY: boundingBox ? Math.round(boundingBox.y) : null,
+                regionW: boundingBox ? Math.round(boundingBox.width) : null,
+                regionH: boundingBox ? Math.round(boundingBox.height) : null,
+              },
             });
           }
         }

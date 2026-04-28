@@ -46,9 +46,10 @@ export function compareTypography(
           elementSelector: refItem.selector,
           textContent: refItem.textContent,
           property: formatPropertyName(property),
-          expected: refItem[property as keyof TypographyStyle],
-          actual: devMatch.style[property as keyof TypographyStyle],
+          expected: refItem[property as keyof TypographyStyle] as string,
+          actual: devMatch.style[property as keyof TypographyStyle] as string,
           severity,
+          boundingBox: refItem.boundingBox,
         });
       }
     }

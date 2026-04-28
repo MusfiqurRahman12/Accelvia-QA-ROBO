@@ -84,6 +84,7 @@ export async function extractTypography(
         if (!text || text.length > 200) return; // skip empty or very long text
 
         const computed = window.getComputedStyle(el);
+        const rect = el.getBoundingClientRect();
         const tagName = el.tagName.toLowerCase();
         const classList = el.className
           ? `.${String(el.className).split(" ").filter(Boolean).join(".")}`
@@ -99,6 +100,12 @@ export async function extractTypography(
           letterSpacing: computed.letterSpacing,
           color: computed.color,
           textTransform: computed.textTransform,
+          boundingBox: {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          },
         });
       });
 

@@ -29,6 +29,10 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    if (report && typeof report.content === 'string') {
+      report.content = JSON.parse(report.content);
+    }
+
     return NextResponse.json({ report });
   } catch (error) {
     console.error("Error fetching report:", error);
@@ -79,6 +83,7 @@ export async function POST(
 
     // Add typography diffs
     for (const diff of comparison.typographyDiffs) {
+      const locText = diff.regionX !== null ? `Coordinates: X:${diff.regionX}, Y:${diff.regionY} (Size: ${diff.regionW}x${diff.regionH})` : "Location unknown";
       bugs.push({
         id: `bug-${bugIndex++}`,
         title: `${diff.property} mismatch on "${diff.textContent.substring(0, 30)}"`,
@@ -86,11 +91,13 @@ export async function POST(
         category: "typography",
         severity: diff.severity,
         source: "typography",
+        location: locText,
       });
     }
 
     // Add AI bugs
     for (const aiBug of comparison.aiBugs) {
+      const locText = aiBug.regionX !== null ? `Coordinates: X:${aiBug.regionX}, Y:${aiBug.regionY} (Size: ${aiBug.regionW}x${aiBug.regionH})` : "Location unknown";
       bugs.push({
         id: `bug-${bugIndex++}`,
         title: `${aiBug.category}: ${aiBug.description.substring(0, 60)}`,
@@ -98,6 +105,7 @@ export async function POST(
         category: aiBug.category,
         severity: aiBug.severity,
         source: "ai",
+        location: locText,
       });
     }
 
@@ -108,11 +116,11 @@ export async function POST(
         comparisonId: id,
         title: `QA Report: ${comparison.project.name}`,
         summary: `Found ${bugs.length} issues across visual diff, typography, and AI analysis.`,
-        content: { bugs, notes: "" },
+        content: JSON.stringify({ bugs, notes: "" }),
       },
       update: {
         title: `QA Report: ${comparison.project.name}`,
-        content: { bugs, notes: "" },
+        content: JSON.stringify({ bugs, notes: "" }),
       },
     });
 
@@ -148,7 +156,7 @@ export async function PATCH(
       data: {
         title: body.title || report.title,
         summary: body.summary || report.summary,
-        content: body.content || report.content,
+        content: body.content ? JSON.stringify(body.content) : report.content,
       },
     });
 
