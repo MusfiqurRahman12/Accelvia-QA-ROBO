@@ -65,14 +65,34 @@ function findBestMatch(
 ): { style: TypographyStyle; index: number } | null {
   let bestScore = 0;
   let bestIndex = -1;
+  let minDistance = Infinity;
 
   devStyles.forEach((devItem, index) => {
     if (excludeIndices.has(index)) return;
 
-    const score = calculateSimilarity(refItem.textContent, devItem.textContent);
-    if (score > bestScore && score > 0.6) {
+    const textScore = calculateSimilarity(refItem.textContent, devItem.textContent);
+    if (textScore < 0.6) return;
+
+    let score = textScore;
+
+    // Small bonus for matching semantic section
+    const refSection = refItem.selector.match(/\[(.*?)\]/)?.[1] || "";
+    const devSection = devItem.selector.match(/\[(.*?)\]/)?.[1] || "";
+    if (refSection && devSection && refSection === devSection) {
+      score += 0.05;
+    }
+
+    let distance = 0;
+    if (refItem.boundingBox && devItem.boundingBox) {
+      const dx = refItem.boundingBox.x - devItem.boundingBox.x;
+      const dy = refItem.boundingBox.y - devItem.boundingBox.y;
+      distance = Math.sqrt(dx * dx + dy * dy);
+    }
+
+    if (score > bestScore || (score === bestScore && distance < minDistance)) {
       bestScore = score;
       bestIndex = index;
+      minDistance = distance;
     }
   });
 
@@ -105,6 +125,20 @@ function normalizeValue(property: string, value: string): string {
       .split(",")
       .map((f) => f.trim().toLowerCase())
       .join(", ");
+  }
+
+  if (property === "fontWeight") {
+    const weightMap: Record<string, string> = {
+      normal: "400",
+      regular: "400",
+      medium: "500",
+      semibold: "600",
+      bold: "700",
+      extrabold: "800",
+      black: "900",
+    };
+    const val = value.toLowerCase().trim();
+    return weightMap[val] || val;
   }
 
   if (property === "fontSize" || property === "letterSpacing") {
