@@ -24,8 +24,8 @@ export async function captureScreenshot(
     const page = await context.newPage();
 
     await page.goto(url, {
-      waitUntil: "networkidle",
-      timeout: 30000,
+      waitUntil: "load",
+      timeout: 60000,
     });
 
     // Wait for fonts to load
@@ -59,7 +59,7 @@ export async function extractTypography(
     });
 
     const page = await context.newPage();
-    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+    await page.goto(url, { waitUntil: "load", timeout: 60000 });
     await page.evaluate(() => document.fonts.ready);
 
     const styles = await page.evaluate(() => {
