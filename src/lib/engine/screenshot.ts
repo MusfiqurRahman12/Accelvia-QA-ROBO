@@ -10,7 +10,8 @@ import { TypographyStyle } from "@/types";
 
 export async function captureScreenshot(
   url: string,
-  viewport: { width: number; height: number }
+  viewport: { width: number; height: number },
+  fullPage: boolean = true
 ): Promise<Buffer> {
   const { chromium } = await import("playwright");
   const browser = await chromium.launch({ headless: true });
@@ -34,7 +35,7 @@ export async function captureScreenshot(
     await page.waitForTimeout(1500);
 
     const screenshot = await page.screenshot({
-      fullPage: true,
+      fullPage: fullPage,
       type: "png",
     });
 

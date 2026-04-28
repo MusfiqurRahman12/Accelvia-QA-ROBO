@@ -25,6 +25,7 @@ export async function POST(req: Request) {
     const viewportsStr = formData.get("viewports") as string;
     const enableAI = formData.get("enableAI") === "true";
     const enableTypography = formData.get("enableTypography") === "true";
+    const fullPageScan = formData.get("fullPageScan") !== "false"; // default true
 
     if (!devUrl || !referenceType) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -64,6 +65,7 @@ export async function POST(req: Request) {
       viewports,
       enableAI,
       enableTypography,
+      fullPageScan,
       userId: session.user.id,
     }).catch(console.error);
 
@@ -86,9 +88,10 @@ async function processComparisons(params: {
   viewports: Viewport[];
   enableAI: boolean;
   enableTypography: boolean;
+  fullPageScan: boolean;
   userId: string;
 }) {
-  const { comparisonIds, referenceType, referenceSource, referenceFile, devUrl, viewports, enableAI, enableTypography, userId } = params;
+  const { comparisonIds, referenceType, referenceSource, referenceFile, devUrl, viewports, enableAI, enableTypography, fullPageScan, userId } = params;
 
   for (let i = 0; i < comparisonIds.length; i++) {
     const comparisonId = comparisonIds[i];
@@ -105,7 +108,7 @@ async function processComparisons(params: {
         if (!nodeId) throw new Error("Figma URL must include a node ID");
         refBuffer = await exportFrameAsPng(fileKey, nodeId, user.figmaToken);
       } else if (referenceType === "url") {
-        refBuffer = await captureScreenshot(referenceSource, viewport);
+        refBuffer = await captureScreenshot(referenceSource, viewport, fullPageScan);
       } else if (referenceType === "image" && referenceFile) {
         const arrayBuffer = await referenceFile.arrayBuffer();
         refBuffer = Buffer.from(arrayBuffer);
@@ -114,7 +117,14 @@ async function processComparisons(params: {
       }
 
       // Step 2: Capture dev screenshot
-      const devBuffer = await captureScreenshot(devUrl, viewport);
+      let devBuffer = await captureScreenshot(devUrl, viewport, fullPageScan);
+
+      // If viewport-only scan, crop reference image to match viewport height
+      if (!fullPageScan) {
+        const sharp = (await import("sharp")).default;
+        refBuffer = await sharp(refBuffer).resize(viewport.width, viewport.height, { fit: 'cover', position: 'top' }).png().toBuffer();
+        devBuffer = await sharp(devBuffer).resize(viewport.width, viewport.height, { fit: 'cover', position: 'top' }).png().toBuffer();
+      }
 
       // Step 3: Compute diff
       const diffResult = await computeDiff(refBuffer, devBuffer);

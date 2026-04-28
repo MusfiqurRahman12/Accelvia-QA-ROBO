@@ -37,6 +37,7 @@ export default function ComparePage() {
   const [selectedViewports, setSelectedViewports] = useState([3]); // Desktop by default
   const [enableAI, setEnableAI] = useState(false);
   const [enableTypography, setEnableTypography] = useState(true);
+  const [fullPageScan, setFullPageScan] = useState(true);
   const [projectName, setProjectName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -58,6 +59,7 @@ export default function ComparePage() {
       formData.append("devUrl", devUrl);
       formData.append("enableAI", String(enableAI));
       formData.append("enableTypography", String(enableTypography));
+      formData.append("fullPageScan", String(fullPageScan));
 
       if (referenceType === "image" && referenceFile) {
         formData.append("referenceFile", referenceFile);
@@ -239,6 +241,20 @@ export default function ComparePage() {
             <p className="step-desc">Configure additional analysis features</p>
 
             <div className="option-cards">
+              <div className={`option-card glass-card ${fullPageScan ? "active" : ""}`}
+                onClick={() => setFullPageScan(!fullPageScan)}>
+                <div className="option-icon" style={{ background: "rgba(139, 92, 246, 0.1)", color: "#8b5cf6" }}>
+                  <Monitor size={24} />
+                </div>
+                <div>
+                  <h3>Full Page Scan</h3>
+                  <p>{fullPageScan ? "Captures and diffs the entire scrolling height of the page" : "Viewport only. Faster and avoids shifting layout false-positives"}</p>
+                </div>
+                <div className={`option-toggle ${fullPageScan ? "on" : ""}`}>
+                  <div className="toggle-dot" />
+                </div>
+              </div>
+
               <div className={`option-card glass-card ${enableTypography ? "active" : ""}`}
                 onClick={() => setEnableTypography(!enableTypography)}>
                 <div className="option-icon" style={{ background: "rgba(6, 182, 212, 0.1)", color: "#06b6d4" }}>

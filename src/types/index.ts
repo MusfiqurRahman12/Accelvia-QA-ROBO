@@ -42,6 +42,7 @@ export interface ComparisonInput {
   viewports: Viewport[];
   enableAI: boolean;
   enableTypography: boolean;
+  fullPage: boolean;
 }
 
 export interface AIBugResult {
