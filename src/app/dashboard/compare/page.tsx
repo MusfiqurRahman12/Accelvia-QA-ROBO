@@ -37,7 +37,7 @@ export default function ComparePage() {
   const [selectedViewports, setSelectedViewports] = useState([3]); // Desktop by default
   const [enableAI, setEnableAI] = useState(false);
   const [enableTypography, setEnableTypography] = useState(true);
-  const [fullPageScan, setFullPageScan] = useState(true);
+  const [fullPageScan, setFullPageScan] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
